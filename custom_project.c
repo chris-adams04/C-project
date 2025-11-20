@@ -66,12 +66,12 @@ void ModifyRegistry() {
     HKEY hKey;
 
 
-    const char* stringValue = "Hello Registry";   // REG_SZ
+    const char* stringValue = "Malicious_data";   // REG_SZ
     DWORD dwordValue1 = 111;                      // REG_DWORD
     DWORD dwordValue2 = 222;                      // REG_DWORD
     BYTE binaryValue[5] = {1, 2, 3, 4, 5};       // REG_BINARY
 
-    if (RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\SampleProject",
+    if (RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\Malware",
                         0, NULL, 0, KEY_ALL_ACCESS, NULL, &hKey, NULL) == ERROR_SUCCESS) {
 
         RegSetValueExA(hKey, "StringValue", 0, REG_SZ, (BYTE*)stringValue, (DWORD)(strlen(stringValue) + 1));
@@ -94,7 +94,7 @@ void ModifyRegistry() {
 void DeleteRegistryValues() {
     HKEY hKey;
 
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\SampleProject", 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Malware", 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS) {
         const char* valuesToDelete[] = {"DwordValue2", "BinaryValue"};
         for (int i = 0; i < 2; i++) {
             if (RegDeleteValueA(hKey, valuesToDelete[i]) == ERROR_SUCCESS)
@@ -113,18 +113,18 @@ void DeleteRegistryValues() {
 // Create directories + files
 // ---------------------------------------------------
 void CreateFiles() {
-    CreateDirectoryA("C:\\SampleProjectDir1", NULL);
-    CreateDirectoryA("C:\\SampleProjectDir2", NULL);
+    CreateDirectoryA("C:\\ChrisProjectDir1", NULL);
+    CreateDirectoryA("C:\\ChrisProjectDir2", NULL);
 
     // Create text file in Folder 1 (KEPT)
-    FILE *f1 = fopen("C:\\SampleProjectDir1\\message.txt", "w");
+    FILE *f1 = fopen("C:\\ChrisProjectDir1\\malware.txt", "w");
     if (f1) {
-        fprintf(f1, "Hello, This is a sample project\n");
+        fprintf(f1, "YOU HAVE BEEN HACKED!!!!!!!!!\n");
         fclose(f1);
     }
 
     // Create binary file in Folder 2 (DELETED LATER)
-    FILE *f2 = fopen("C:\\SampleProjectDir2\\data.dat", "wb");
+    FILE *f2 = fopen("C:\\ChrisProjectDir2\\data.dat", "wb");
     if (f2) {
         unsigned char data[] = {0xDE, 0xAD, 0xBE, 0xEF, '@', '#', '$'};
         fwrite(data, sizeof(data), 1, f2);
@@ -136,8 +136,8 @@ void CreateFiles() {
 
 void DeleteFiles() {
     // Delete ONLY Folder 2
-    DeleteFileA("C:\\SampleProjectDir2\\data.dat");
-    RemoveDirectoryA("C:\\SampleProjectDir2");
+    DeleteFileA("C:\\ChrisProjectDir2\\data.dat");
+    RemoveDirectoryA("C:\\ChrisProjectDir2");
 
     printf("[Files] Deleted Dir2 and its file. Dir1 kept.\n");
 }
@@ -173,7 +173,7 @@ void LaunchCmdThenPaint() {
 // ---------------------------------------------------
 int main() {
     // Safety
-    if (MessageBoxA(NULL,
+   /* if (MessageBoxA(NULL,
         "This project will create & delete local files/directories,\n"
         "modify Windows registry keys,\n"
         "change wallpaper,\n"
@@ -185,6 +185,7 @@ int main() {
         printf("User cancelled.\n");
         return 0;
     }
+        */
 
     // 1. Create files
     CreateFiles();
@@ -217,6 +218,9 @@ int main() {
     // 5. Cleanup files
     DeleteFiles();
 
-    MessageBoxA(NULL, "All operations complete.", "Done", MB_OK);
+    printf("All operations completed successfully");
+    //MessageBoxA(NULL, "All operations complete.", "Done", MB_OK);
     return 0;
 }
+
+
