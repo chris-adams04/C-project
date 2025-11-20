@@ -1,0 +1,110 @@
+#include <windows.h>
+#include <winhttp.h>
+#include <stdio.h>
+
+#pragma comment(lib, "winhttp.lib")
+
+int main() {
+    // Replace with your GitHub release asset URL
+    LPCWSTR url = L"https://github.com/USERNAME/REPO/releases/download/v1.0/project.exe";
+    LPCWSTR savePath = L"downloaded_project.exe";
+
+    URL_COMPONENTS urlComp = {0};
+    urlComp.dwStructSize = sizeof(urlComp);
+
+    wchar_t hostName[256] = {0};
+    wchar_t urlPath[1024] = {0};
+    urlComp.lpszHostName = hostName;
+    urlComp.dwHostNameLength = 255;
+    urlComp.lpszUrlPath = urlPath;
+    urlComp.dwUrlPathLength = 1023;
+
+    // Parse the URL into hostname and path
+    if (!WinHttpCrackUrl(url, 0, 0, &urlComp)) {
+        printf("Error: Invalid URL\n");
+        return 1;
+    }
+
+    HINTERNET hSession = WinHttpOpen(L"MyDownloader/1.0",
+                                     WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                                     NULL, NULL, 0);
+    if (!hSession) {
+        printf("Error: Cannot create session\n");
+        return 1;
+    }
+
+    HINTERNET hConnect = WinHttpConnect(hSession, hostName, urlComp.nPort, 0);
+    if (!hConnect) return 1;
+
+    HINTERNET hRequest = WinHttpOpenRequest(
+        hConnect, L"GET", urlPath,
+        NULL, WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        (urlComp.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
+
+    if (!hRequest) return 1;
+
+    if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                            NULL, 0, 0, 0)) return 1;
+
+    WinHttpReceiveResponse(hRequest, NULL);
+
+    HANDLE out = CreateFileW(savePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                             FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (out == INVALID_HANDLE_VALUE) {
+        printf("Error: Cannot create file\n");
+        return 1;
+    }
+
+    DWORD bytesRead = 0;
+    BYTE buffer[4096];
+
+    printf("Downloading...\n");
+
+    while (WinHttpReadData(hRequest, buffer, sizeof(buffer), &bytesRead)) {
+        if (bytesRead == 0) break;
+        DWORD written;
+        WriteFile(out, buffer, bytesRead, &written, NULL);
+    }
+
+    CloseHandle(out);
+    WinHttpCloseHandle(hRequest);
+    WinHttpCloseHandle(hConnect);
+    WinHttpCloseHandle(hSession);
+
+    printf("Download completed: %ls\n", savePath);
+
+    // Ask user if they want to run it
+    printf("Run the downloaded program now? (y/n): ");
+    char choice;
+    scanf(" %c", &choice);
+
+    if (choice == 'y' || choice == 'Y') {
+        STARTUPINFO si = {0};
+        PROCESS_INFORMATION pi = {0};
+        si.cb = sizeof(si);
+
+        // This executes the file in a normal, visible way
+        if (CreateProcessW(
+                savePath, NULL, NULL, NULL,
+                FALSE, 0, NULL, NULL,
+                &si, &pi)) {
+
+            printf("Program started.\n");
+
+            // Optionally wait for it to finish
+            WaitForSingleObject(pi.hProcess, INFINITE);
+
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+        }
+        else {
+            printf("Error: Could not run the EXE.\n");
+        }
+    } else {
+        printf("User canceled execution.\n");
+    }
+
+    return 0;
+}
